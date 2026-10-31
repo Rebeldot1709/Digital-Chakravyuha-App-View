@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Diagnostic connection test endpoint
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Global Reusable Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 2. UserProfile Validation Blueprint
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+        'userId', 'email', 'displayName', 'defenseStance',
+        'securityScore', 'quantumEncryptionEnabled', 'honeypotMirrorsCount',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'userId', 'email', 'displayName', 'photoURL', 'defenseStance',
+        'securityScore', 'quantumEncryptionEnabled', 'honeypotMirrorsCount',
+        'autoScrubIntervalMinutes', 'createdAt', 'updatedAt'
+      ]) &&
+      data.userId is string && data.userId == request.auth.uid &&
+      data.email is string && data.email.size() > 0 && data.email.size() <= 256 &&
+      data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 128 &&
+      (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024)) &&
+      data.defenseStance in ['STANDARD', 'GARUDA', 'BRAHMASTRA', 'ABHIMANYU'] &&
+      data.securityScore is number && data.securityScore >= 0 && data.securityScore <= 100 &&
+      data.quantumEncryptionEnabled is bool &&
+      data.honeypotMirrorsCount is number && data.honeypotMirrorsCount >= 0 && data.honeypotMirrorsCount <= 100000 &&
+      (!('autoScrubIntervalMinutes' in data) || (data.autoScrubIntervalMinutes is number && data.autoScrubIntervalMinutes >= 1 && data.autoScrubIntervalMinutes <= 1440)) &&
+      data.createdAt is string && data.createdAt.size() <= 64 &&
+      data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    // 3. SecurityLog Validation Blueprint
+    function isValidSecurityLog(data) {
+      return data.keys().hasAll([
+        'id', 'userId', 'threatClassification', 'severityLevel',
+        'stoppingLayer', 'attackerPayload', 'tacticalNeutralization',
+        'coreBreached', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'userId', 'threatClassification', 'severityLevel',
+        'stoppingLayer', 'attackerPayload', 'tacticalNeutralization',
+        'coreBreached', 'createdAt'
+      ]) &&
+      data.id is string && isValidId(data.id) &&
+      data.userId is string && data.userId == request.auth.uid &&
+      data.threatClassification is string && data.threatClassification.size() > 0 && data.threatClassification.size() <= 256 &&
+      data.severityLevel in ['CRITICAL', 'HIGH', 'MAXIMUM', 'EXTREME'] &&
+      data.stoppingLayer is number && data.stoppingLayer >= 1 && data.stoppingLayer <= 6 &&
+      data.attackerPayload is string && data.attackerPayload.size() <= 2048 &&
+      data.tacticalNeutralization is string && data.tacticalNeutralization.size() <= 1024 &&
+      data.coreBreached == false &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // 4. CustomRule Validation Blueprint
+    function isValidCustomRule(data) {
+      return data.keys().hasAll([
+        'id', 'userId', 'ruleName', 'targetLayer', 'action',
+        'patternMatch', 'enabled', 'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'id', 'userId', 'ruleName', 'targetLayer', 'action',
+        'patternMatch', 'enabled', 'createdAt'
+      ]) &&
+      data.id is string && isValidId(data.id) &&
+      data.userId is string && data.userId == request.auth.uid &&
+      data.ruleName is string && data.ruleName.size() > 0 && data.ruleName.size() <= 128 &&
+      data.targetLayer is number && data.targetLayer >= 1 && data.targetLayer <= 7 &&
+      data.action in ['DROP_AND_DISINTEGRATE', 'REDIRECT_TO_HONEYPOT', 'QUARANTINE_THREAD', 'SCRAMBLE_LATTICE'] &&
+      data.patternMatch is string && data.patternMatch.size() > 0 && data.patternMatch.size() <= 256 &&
+      data.enabled is bool &&
+      data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    // MATCH: User Profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Blanket user enumeration strictly denied
+
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt;
+
+      allow delete: if isOwner(userId);
+
+      // SUB-COLLECTION: Security Logs
+      match /securityLogs/{logId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+          isValidId(logId) &&
+          isValidSecurityLog(incoming());
+
+        allow update: if false; // Security audit logs are immutable once recorded
+        allow delete: if isOwner(userId);
+      }
+
+      // SUB-COLLECTION: Custom Perimeter Rules
+      match /customRules/{ruleId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+          isValidId(ruleId) &&
+          isValidCustomRule(incoming());
+
+        allow update: if isOwner(userId) &&
+          isValidId(ruleId) &&
+          isValidCustomRule(incoming()) &&
+          incoming().id == existing().id &&
+          incoming().userId == existing().userId &&
+          incoming().createdAt == existing().createdAt;
+
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

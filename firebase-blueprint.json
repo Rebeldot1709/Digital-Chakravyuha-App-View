@@ -1,0 +1,203 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User security profile and defense posture within Digital Chakravyuha",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 128
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "User avatar URL",
+          "maxLength": 1024
+        },
+        "defenseStance": {
+          "type": "string",
+          "description": "Selected defense stance",
+          "enum": ["STANDARD", "GARUDA", "BRAHMASTRA", "ABHIMANYU"]
+        },
+        "securityScore": {
+          "type": "number",
+          "description": "Defense health index score from 0 to 100"
+        },
+        "quantumEncryptionEnabled": {
+          "type": "boolean",
+          "description": "Whether Layer 6 post-quantum lattice encryption is active"
+        },
+        "honeypotMirrorsCount": {
+          "type": "number",
+          "description": "Number of synthetic decoy honeypots allocated"
+        },
+        "autoScrubIntervalMinutes": {
+          "type": "number",
+          "description": "Frequency in minutes of autonomous microsegmentation scrubs"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when profile was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when profile was last updated"
+        }
+      },
+      "required": [
+        "userId",
+        "email",
+        "displayName",
+        "defenseStance",
+        "securityScore",
+        "quantumEncryptionEnabled",
+        "honeypotMirrorsCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SecurityLog": {
+      "title": "SecurityLog",
+      "description": "Security log of an attack simulation or intercepted threat vector",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the log",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of user who initiated or owns the test",
+          "maxLength": 128
+        },
+        "threatClassification": {
+          "type": "string",
+          "description": "Category or name of the threat vector",
+          "maxLength": 256
+        },
+        "severityLevel": {
+          "type": "string",
+          "description": "Severity of the threat",
+          "enum": ["CRITICAL", "HIGH", "MAXIMUM", "EXTREME"]
+        },
+        "stoppingLayer": {
+          "type": "number",
+          "description": "Layer number 1 to 6 where the attack was stopped"
+        },
+        "attackerPayload": {
+          "type": "string",
+          "description": "Payload or description of the attack vector",
+          "maxLength": 2048
+        },
+        "tacticalNeutralization": {
+          "type": "string",
+          "description": "Summary of tactical defensive action taken",
+          "maxLength": 1024
+        },
+        "coreBreached": {
+          "type": "boolean",
+          "description": "Whether core was compromised (always false)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of simulation"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "threatClassification",
+        "severityLevel",
+        "stoppingLayer",
+        "attackerPayload",
+        "tacticalNeutralization",
+        "coreBreached",
+        "createdAt"
+      ]
+    },
+    "CustomRule": {
+      "title": "CustomRule",
+      "description": "User custom perimeter filtering or containment rule",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the rule",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the rule owner",
+          "maxLength": 128
+        },
+        "ruleName": {
+          "type": "string",
+          "description": "Descriptive title of the defense rule",
+          "maxLength": 128
+        },
+        "targetLayer": {
+          "type": "number",
+          "description": "Chakravyuha layer target from 1 to 7"
+        },
+        "action": {
+          "type": "string",
+          "description": "Defense action to enforce",
+          "enum": ["DROP_AND_DISINTEGRATE", "REDIRECT_TO_HONEYPOT", "QUARANTINE_THREAD", "SCRAMBLE_LATTICE"]
+        },
+        "patternMatch": {
+          "type": "string",
+          "description": "Regex or string pattern to detect",
+          "maxLength": 256
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this rule is active"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when rule was created"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "ruleName",
+        "targetLayer",
+        "action",
+        "patternMatch",
+        "enabled",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Personal security profile, defense configuration, and integrity posture"
+    },
+    "/users/{userId}/securityLogs/{logId}": {
+      "schema": "SecurityLog",
+      "description": "Historical audit logs of penetration tests and intercepted adversarial vectors"
+    },
+    "/users/{userId}/customRules/{ruleId}": {
+      "schema": "CustomRule",
+      "description": "User-configured perimeter rules, honeypot redirects, and containment policies"
+    }
+  }
+}
